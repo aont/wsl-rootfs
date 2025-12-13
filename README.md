@@ -1,7 +1,7 @@
 # wsl-rootfs
 Simplest WSL rootfs building method.
 
-```
+```bash
 apt-get install umoci skopeo ca-certificates
 skopeo copy docker://ubuntu:24.04 oci:./ubuntu_24_04_oci:24.04
 umoci raw unpack --image ./ubuntu_24_04_oci:24.04 ./rootfs
