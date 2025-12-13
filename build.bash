@@ -29,5 +29,6 @@ DIGEST_SHORT="${DIGEST_LIST#sha256:}"
 DIGEST_SHORT="${DIGEST_SHORT:0:7}"
 
 skopeo copy docker://"$IMAGENAME":"$TAG" oci:"$OCIPATH"/"$IMAGENAME":"$TAG"
-umoci raw unpack --image "$OCIPATH"/"$IMAGENAME":"$TAG" "$ROOTFSPATH"
-tar czf "$IMAGEPATH"/"$IMAGENAME"_"$TAG"_"$DIGEST_SHORT".tar.gz --numeric-owner --xattrs --acls --selinux -p -C "$ROOTFSPATH" .
+rm -rf "$ROOTFSPATH/$IMAGENAME"
+umoci raw unpack --image "$OCIPATH"/"$IMAGENAME":"$TAG" "$ROOTFSPATH/$IMAGENAME"
+tar czf "$IMAGEPATH"/"$IMAGENAME"_"$TAG"_"$DIGEST_SHORT".tar.gz --numeric-owner --xattrs --acls --selinux -p -C "$ROOTFSPATH/$IMAGENAME" .
