@@ -1,2 +1,2 @@
 # wsl-rootfs
-Simplest WSL rootfs building method.
+A simple tool to convert a Docker container image into a WSL rootfs image.
