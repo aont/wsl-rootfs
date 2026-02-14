@@ -46,6 +46,45 @@ After producing the archive, import it into WSL from PowerShell:
 wsl --import Ubuntu2404 C:\WSL\Ubuntu2404 .\ubuntu-24.04-rootfs.tar.gz
 ```
 
+## GitHub Actions workflow (YAML)
+
+You can automate rootfs archive builds on each push using this workflow:
+
+```yaml
+name: Build WSL rootfs
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo jq umoci tar
+
+      - name: Build rootfs archive
+        run: |
+          chmod +x ./build.bash
+          ./build.bash ubuntu 24.04 --output ./dist/ubuntu-24.04-rootfs.tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-24.04-rootfs
+          path: ./dist/ubuntu-24.04-rootfs.tar.gz
+```
+
+This workflow checks out the repository, installs required tools, runs `build.bash`, and uploads the generated rootfs archive as a downloadable workflow artifact.
+
 ## Notes and limitations
 
 - The script currently selects only `amd64` manifests.
