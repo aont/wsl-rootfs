@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./build.bash "${{ steps.vars.outputs.image_name }}" "${{ steps.vars.outputs.image_tag }}" "${{ steps.vars.outputs.commit_short }}"
+          sudo bash ./build.bash "${{ steps.vars.outputs.image_name }}" "${{ steps.vars.outputs.image_tag }}" "${{ steps.vars.outputs.commit_short }}"
 
       - name: Ensure release exists
         env:
