@@ -1,0 +1,81 @@
+name: Build rootfs image and upload to release
+
+on:
+  workflow_dispatch:
+    inputs:
+      docker_hub_image:
+        description: "Docker Hub image name (example: ubuntu:noble-20251013)"
+        required: true
+        type: string
+      release_tag:
+        description: "Release tag name (leave empty to use {commit date}-{commit id(7)})"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo umoci jq
+
+      - name: Resolve build parameters
+        id: params
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IMAGE='${{ github.event.inputs.docker_hub_image }}'
+          INPUT_RELEASE_TAG='${{ github.event.inputs.release_tag }}'
+
+          if [[ "$IMAGE" != *:* ]]; then
+            echo "docker_hub_image must include a tag, e.g. ubuntu:noble-20251013" >&2
+            exit 1
+          fi
+
+          IMAGE_NAME="${IMAGE%:*}"
+          IMAGE_TAG="${IMAGE##*:}"
+          IMAGE_BASENAME="${IMAGE_NAME##*/}"
+
+          SHORT_SHA="$(git rev-parse --short=7 HEAD)"
+          COMMIT_DATE="$(git show -s --date=format:%Y%m%d --format=%cd HEAD)"
+
+          if [[ -z "$INPUT_RELEASE_TAG" ]]; then
+            RELEASE_TAG="${COMMIT_DATE}-${SHORT_SHA}"
+          else
+            RELEASE_TAG="$INPUT_RELEASE_TAG"
+          fi
+
+          OUTPUT_FILENAME="${IMAGE_BASENAME}_${IMAGE_TAG}_${SHORT_SHA}.tar.gz"
+
+          echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "output_filename=${OUTPUT_FILENAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build rootfs archive (skopeo + umoci via build.bash, root privilege)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          sudo bash ./build.bash \
+            '${{ steps.params.outputs.image_name }}' \
+            '${{ steps.params.outputs.image_tag }}' \
+            --output "dist/${{ steps.params.outputs.output_filename }}"
+
+      - name: Upload archive to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.params.outputs.release_tag }}
+          files: dist/${{ steps.params.outputs.output_filename }}
+          generate_release_notes: true
