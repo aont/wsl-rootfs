@@ -1,0 +1,83 @@
+name: Build image and upload to Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      docker_image:
+        description: "Docker Hub image name (e.g., ubuntu:noble-20251013)"
+        required: true
+        type: string
+      release_tag:
+        description: "Release tag name (optional). If empty, computed automatically."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute metadata
+        id: meta
+        shell: bash
+        env:
+          INPUT_IMAGE: ${{ github.event.inputs.docker_image }}
+          INPUT_RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          IMAGE="$INPUT_IMAGE"
+
+          # Split image into basename + tag.
+          REPO_PART="${IMAGE%%:*}"
+          IMAGE_TAG="${IMAGE#*:}"
+
+          # If no explicit tag was provided in image, default to latest.
+          if [[ "$REPO_PART" == "$IMAGE" ]]; then
+            IMAGE_TAG="latest"
+          fi
+
+          IMAGE_BASENAME="${REPO_PART##*/}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          DATE_UTC="$(date -u +%Y%m%d)"
+
+          if [[ -n "$INPUT_RELEASE_TAG" ]]; then
+            RELEASE_TAG="$INPUT_RELEASE_TAG"
+          else
+            RELEASE_TAG="${DATE_UTC}-${SHORT_SHA}-${IMAGE_BASENAME}-${IMAGE_TAG}"
+          fi
+
+          OUTPUT_FILE="${IMAGE_BASENAME}_${IMAGE_TAG}_${SHORT_SHA}.tar.gz"
+
+          {
+            echo "image=$IMAGE"
+            echo "image_basename=$IMAGE_BASENAME"
+            echo "image_tag=$IMAGE_TAG"
+            echo "short_sha=$SHORT_SHA"
+            echo "release_tag=$RELEASE_TAG"
+            echo "output_file=$OUTPUT_FILE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Pull container image
+        run: docker pull "${{ steps.meta.outputs.image }}"
+
+      - name: Export image archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker save "${{ steps.meta.outputs.image }}" | gzip > "${{ steps.meta.outputs.output_file }}"
+          ls -lh "${{ steps.meta.outputs.output_file }}"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          generate_release_notes: true
+          files: ${{ steps.meta.outputs.output_file }}
