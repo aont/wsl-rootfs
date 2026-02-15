@@ -60,7 +60,12 @@ mkdir -p "$OCIPATH"
 mkdir -p "$ROOTFSPATH"
 mkdir -p "$(dirname "$OUTPUT_PATH")"
 
-DIGEST_LIST=$(skopeo inspect --raw docker://"$IMAGENAME":"$TAG" | jq -r '.manifests[] | select(.platform.architecture=="amd64") | .digest')
+SKOPEO_CREDS_ARGS=()
+if [[ -n "${DOCKERHUB_USERNAME:-}" && -n "${DOCKERHUB_TOKEN:-}" ]]; then
+  SKOPEO_CREDS_ARGS=(--creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}")
+fi
+
+DIGEST_LIST=$(skopeo inspect "${SKOPEO_CREDS_ARGS[@]}" --raw docker://"$IMAGENAME":"$TAG" | jq -r '.manifests[] | select(.platform.architecture=="amd64") | .digest')
 NUM_DIGESTS="$(echo "$DIGEST_LIST" | wc -l)"
 
 if [[ ! "$NUM_DIGESTS" -eq 1 ]]; then
@@ -69,7 +74,7 @@ if [[ ! "$NUM_DIGESTS" -eq 1 ]]; then
 fi
 
 
-skopeo copy docker://"$IMAGENAME":"$TAG" oci:"$OCIPATH"/"$IMAGENAME":"$TAG"
+skopeo copy "${SKOPEO_CREDS_ARGS[@]}" docker://"$IMAGENAME":"$TAG" oci:"$OCIPATH"/"$IMAGENAME":"$TAG"
 rm -rf "$ROOTFSPATH/$IMAGENAME"
 umoci raw unpack --image "$OCIPATH"/"$IMAGENAME":"$TAG" "$ROOTFSPATH/$IMAGENAME"
 tar czf "$OUTPUT_PATH" --numeric-owner --xattrs --acls --selinux -p -C "$ROOTFSPATH/$IMAGENAME" .

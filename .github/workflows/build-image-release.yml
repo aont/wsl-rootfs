@@ -65,14 +65,16 @@ jobs:
 
       - name: Build rootfs archive (skopeo + umoci via build.bash, root privilege)
         shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p dist
-          sudo bash ./build.bash \
+          sudo --preserve-env=DOCKERHUB_USERNAME,DOCKERHUB_TOKEN bash ./build.bash \
             '${{ steps.params.outputs.image_name }}' \
             '${{ steps.params.outputs.image_tag }}' \
             --output "dist/${{ steps.params.outputs.output_filename }}"
-
       - name: Upload archive to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
