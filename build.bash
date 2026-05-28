@@ -60,12 +60,19 @@ mkdir -p "$OCIPATH"
 mkdir -p "$ROOTFSPATH"
 mkdir -p "$(dirname "$OUTPUT_PATH")"
 
-SKOPEO_CREDS_ARGS=()
+SKOPEO_INSPECT_CREDS_ARGS=()
+SKOPEO_COPY_CREDS_ARGS=()
 if [[ -n "${DOCKERHUB_USERNAME:-}" && -n "${DOCKERHUB_TOKEN:-}" ]]; then
-  SKOPEO_CREDS_ARGS=(--creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}")
+  if skopeo copy --help 2>&1 | grep -q -- '--src-creds'; then
+    SKOPEO_INSPECT_CREDS_ARGS=(--creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}")
+    SKOPEO_COPY_CREDS_ARGS=(--src-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}")
+  else
+    SKOPEO_INSPECT_CREDS_ARGS=(--creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}")
+    SKOPEO_COPY_CREDS_ARGS=(--creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}")
+  fi
 fi
 
-DIGEST_LIST=$(skopeo inspect "${SKOPEO_CREDS_ARGS[@]}" --raw docker://"$IMAGENAME":"$TAG" | jq -r '.manifests[] | select(.platform.architecture=="amd64") | .digest')
+DIGEST_LIST=$(skopeo inspect "${SKOPEO_INSPECT_CREDS_ARGS[@]}" --raw docker://"$IMAGENAME":"$TAG" | jq -r '.manifests[] | select(.platform.architecture=="amd64") | .digest')
 NUM_DIGESTS="$(echo "$DIGEST_LIST" | wc -l)"
 
 if [[ ! "$NUM_DIGESTS" -eq 1 ]]; then
@@ -74,7 +81,7 @@ if [[ ! "$NUM_DIGESTS" -eq 1 ]]; then
 fi
 
 
-skopeo copy "${SKOPEO_CREDS_ARGS[@]}" docker://"$IMAGENAME":"$TAG" oci:"$OCIPATH"/"$IMAGENAME":"$TAG"
+skopeo copy "${SKOPEO_COPY_CREDS_ARGS[@]}" docker://"$IMAGENAME":"$TAG" oci:"$OCIPATH"/"$IMAGENAME":"$TAG"
 rm -rf "$ROOTFSPATH/$IMAGENAME"
 umoci raw unpack --image "$OCIPATH"/"$IMAGENAME":"$TAG" "$ROOTFSPATH/$IMAGENAME"
 tar czf "$OUTPUT_PATH" --numeric-owner --xattrs --acls --selinux -p -C "$ROOTFSPATH/$IMAGENAME" .
