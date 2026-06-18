@@ -56,7 +56,7 @@ jobs:
             RELEASE_TAG="$INPUT_RELEASE_TAG"
           fi
 
-          OUTPUT_FILENAME="${IMAGE_BASENAME}_${IMAGE_TAG}_${SHORT_SHA}.tar.gz"
+          OUTPUT_FILENAME="${IMAGE_BASENAME}_${IMAGE_TAG}_${SHORT_SHA}.tar.xz"
 
           echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
           echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
