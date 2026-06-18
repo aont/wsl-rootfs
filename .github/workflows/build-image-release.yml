@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -76,7 +76,7 @@ jobs:
             '${{ steps.params.outputs.image_tag }}' \
             --output "dist/${{ steps.params.outputs.output_filename }}"
       - name: Upload archive to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.params.outputs.release_tag }}
           files: dist/${{ steps.params.outputs.output_filename }}
