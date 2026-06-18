@@ -1,6 +1,6 @@
 # wsl-rootfs
 
-`wsl-rootfs` is a small Bash utility that converts a container image from a registry into a compressed Linux root filesystem archive (`.tar.gz`) suitable for importing into WSL.
+`wsl-rootfs` is a small Bash utility that converts a container image from a registry into a compressed Linux root filesystem archive (`.tar.xz`) suitable for importing into WSL.
 
 It does this by:
 1. Inspecting the image and ensuring there is exactly one `linux/amd64` manifest.
@@ -17,11 +17,12 @@ The script depends on:
 - `jq`
 - `umoci`
 - `tar`
+- `xz`
 
 ## Usage
 
 ```bash
-./build.bash <image> <tag> [--ocipath <path>] [--rootfspath <path>] --output <path/to/rootfs.tar.gz>
+./build.bash <image> <tag> [--ocipath <path>] [--rootfspath <path>] --output <path/to/rootfs.tar.xz>
 ```
 
 ### Arguments
@@ -35,7 +36,7 @@ The script depends on:
 ### Example
 
 ```bash
-./build.bash ubuntu 24.04 --output ./dist/ubuntu-24.04-rootfs.tar.gz
+./build.bash ubuntu 24.04 --output ./dist/ubuntu-24.04-rootfs.tar.xz
 ```
 
 ## Import into WSL
@@ -43,7 +44,7 @@ The script depends on:
 After producing the archive, import it into WSL from PowerShell:
 
 ```powershell
-wsl --import Ubuntu2404 C:\WSL\Ubuntu2404 .\ubuntu-24.04-rootfs.tar.gz
+wsl --import Ubuntu2404 C:\WSL\Ubuntu2404 .\ubuntu-24.04-rootfs.tar.xz
 ```
 
 ## GitHub Actions workflow (YAML)
@@ -69,18 +70,18 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y skopeo jq umoci tar
+          sudo apt-get install -y skopeo jq umoci tar xz-utils
 
       - name: Build rootfs archive
         run: |
           chmod +x ./build.bash
-          ./build.bash ubuntu 24.04 --output ./dist/ubuntu-24.04-rootfs.tar.gz
+          ./build.bash ubuntu 24.04 --output ./dist/ubuntu-24.04-rootfs.tar.xz
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-24.04-rootfs
-          path: ./dist/ubuntu-24.04-rootfs.tar.gz
+          path: ./dist/ubuntu-24.04-rootfs.tar.xz
 ```
 
 This workflow checks out the repository, installs required tools, runs `build.bash`, and uploads the generated rootfs archive as a downloadable workflow artifact.

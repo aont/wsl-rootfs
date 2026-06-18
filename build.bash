@@ -9,7 +9,7 @@ OUTPUT_PATH=""
 
 usage() {
   cat <<USAGE
-usage: $0 imagename tag [--ocipath path] [--rootfspath path] --output path/to/image.tar.gz
+usage: $0 imagename tag [--ocipath path] [--rootfspath path] --output path/to/image.tar.xz
 USAGE
 }
 
@@ -84,4 +84,4 @@ fi
 skopeo copy "${SKOPEO_COPY_CREDS_ARGS[@]}" docker://"$IMAGENAME":"$TAG" oci:"$OCIPATH"/"$IMAGENAME":"$TAG"
 rm -rf "$ROOTFSPATH/$IMAGENAME"
 umoci raw unpack --image "$OCIPATH"/"$IMAGENAME":"$TAG" "$ROOTFSPATH/$IMAGENAME"
-tar czf "$OUTPUT_PATH" --numeric-owner --xattrs --acls --selinux -p -C "$ROOTFSPATH/$IMAGENAME" .
+tar -I "xz -9e" -cf "$OUTPUT_PATH" --numeric-owner --xattrs --acls --selinux -p -C "$ROOTFSPATH/$IMAGENAME" .
