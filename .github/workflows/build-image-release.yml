@@ -43,13 +43,18 @@ jobs:
           IMAGE_BASENAME="${IMAGE_NAME##*/}"
 
           SHORT_SHA="$(git rev-parse --short=7 HEAD)"
-          LATEST_PATCH="$(git tag --list 'v1.1.*' | sed -nE 's/^v1\.1\.([0-9]+)$/\1/p' | sort -n | tail -1)"
-          if [[ -z "$LATEST_PATCH" ]]; then
-            NEXT_PATCH=0
+          EXISTING_RELEASE_TAG="$(git tag --points-at HEAD --list 'v1.1.*' | sort -V | tail -1)"
+          if [[ -n "$EXISTING_RELEASE_TAG" ]]; then
+            RELEASE_TAG="$EXISTING_RELEASE_TAG"
           else
-            NEXT_PATCH=$((LATEST_PATCH + 1))
+            LATEST_PATCH="$(git tag --list 'v1.1.*' | sed -nE 's/^v1\.1\.([0-9]+)$/\1/p' | sort -n | tail -1)"
+            if [[ -z "$LATEST_PATCH" ]]; then
+              NEXT_PATCH=0
+            else
+              NEXT_PATCH=$((LATEST_PATCH + 1))
+            fi
+            RELEASE_TAG="v1.1.${NEXT_PATCH}"
           fi
-          RELEASE_TAG="v1.1.${NEXT_PATCH}"
 
           OUTPUT_FILENAME="${IMAGE_BASENAME}_${IMAGE_TAG}_${SHORT_SHA}.tar.xz"
 
